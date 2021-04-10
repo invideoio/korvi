@@ -31,6 +31,8 @@ dependencies {
     add("jvmMainApi", "org.jcodec:jcodec:$jcodecVersion")
 }
 
+apply("publish.gradle.kts")
+
 /*
 apply plugin: com.soywiz.korlibs.KorlibsPlugin
 //apply plugin: com.soywiz.korlibs.KorlibsPluginNoNativeNoAndroid
