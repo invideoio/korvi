@@ -9,6 +9,9 @@ apply<KorlibsPlugin>()
 korlibs {
     //exposeVersion()
 }
+repositories {
+    jcenter()
+}
 
 //kotlin {
 //    linuxX64().apply {
@@ -24,11 +27,14 @@ korlibs {
 val korimVersion: String by project
 val korauVersion: String by project
 val jcodecVersion: String by project
+val exoPlayerVersion: String by project
 
 dependencies {
     add("commonMainApi", "com.soywiz.korlibs.korim:korim:$korimVersion")
     add("commonMainApi", "com.soywiz.korlibs.korau:korau:$korauVersion")
     add("jvmMainApi", "org.jcodec:jcodec:$jcodecVersion")
+    add("jvmMainApi", "com.google.android.exoplayer:exoplayer:$exoPlayerVersion")
+    add("androidMainApi", "com.google.android.exoplayer:exoplayer:$exoPlayerVersion")
 }
 
 /*
