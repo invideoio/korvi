@@ -37,6 +37,8 @@ dependencies {
     add("androidMainApi", "com.google.android.exoplayer:exoplayer:$exoPlayerVersion")
 }
 
+apply("publish.gradle.kts")
+
 /*
 apply plugin: com.soywiz.korlibs.KorlibsPlugin
 //apply plugin: com.soywiz.korlibs.KorlibsPluginNoNativeNoAndroid
