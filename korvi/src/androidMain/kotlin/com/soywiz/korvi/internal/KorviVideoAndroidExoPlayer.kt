@@ -40,9 +40,9 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
             player = SimpleExoPlayer.Builder(androidContext).build()
             player?.apply {
 //                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///"+file.baseName)))
-                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///big_bunny.mp4")))
-//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///bbb.mp4")))
-//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///jf.mp4")))
+//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///big_bunny.mp4")))
+                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///bbb.mp4")))
+                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///jf.mp4")))
             }
 
         }
@@ -129,6 +129,16 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
         }
     }
 
+    override suspend fun pause() {
+        super.pause()
+        CoroutineScope(Dispatchers.Main).launch {
+            player?.pause()
+            println("Duration:" + getDuration()?.secondsInt)
+
+        }
+
+    }
+
     override suspend fun seek(frame: Long) {
         println(frameRate.timeSpan.hr)
         seek(frameRate.timeSpan.hr * frame.toDouble())
@@ -137,7 +147,7 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
     override suspend fun seek(time: HRTimeSpan) {
         lastTimeSpan = time
         CoroutineScope(Dispatchers.Main).launch {
-            println("seek:${time.millisecondsInt.toLong()}")
+            println("seekExoPlayer:${time.millisecondsInt.toLong()}")
             player?.seekTo(time.millisecondsInt.toLong())
         }
     }
