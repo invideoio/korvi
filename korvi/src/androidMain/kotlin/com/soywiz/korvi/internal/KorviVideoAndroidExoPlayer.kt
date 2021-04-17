@@ -1,10 +1,7 @@
 package com.soywiz.korvi.internal
 
-import android.net.Uri
-import android.util.Log
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.source.TrackGroupArray
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray
+import com.google.android.exoplayer2.video.VideoListener
 import com.soywiz.klock.Frequency
 import com.soywiz.klock.hr.HRTimeSpan
 import com.soywiz.klock.hr.hr
@@ -12,9 +9,7 @@ import com.soywiz.klock.milliseconds
 import com.soywiz.klock.nanoseconds
 import com.soywiz.klock.timesPerSecond
 import com.soywiz.korio.android.androidContext
-import com.soywiz.korio.android.withAndroidContext
 import com.soywiz.korio.file.VfsFile
-import com.soywiz.korio.file.baseName
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
 
@@ -22,7 +17,8 @@ import kotlinx.coroutines.*
 class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) : KorviVideo() {
 
     companion object {
-        suspend operator fun invoke(file: VfsFile) = AndroidKorviVideoAndroidExoPlayer(file).also { it.init() }
+        suspend operator fun invoke(file: VfsFile) =
+            AndroidKorviVideoAndroidExoPlayer(file).also { it.init() }
     }
 
     private var player: SimpleExoPlayer? = null
@@ -33,16 +29,14 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
 
         val androidContext = androidContext()
 
-        withContext(Dispatchers.Main){
-
-        }
         CoroutineScope(Dispatchers.Main).launch {
-            player = SimpleExoPlayer.Builder(androidContext).build()
+            player = SimpleExoPlayer.Builder(androidContext)
+                .build()
             player?.apply {
-//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///"+file.baseName)))
-//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///big_bunny.mp4")))
-                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///bbb.mp4")))
-                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///jf.mp4")))
+                //Todo add multiple data sources when received as list
+                addMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
+//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///squid_30.mp4")))
+//                addMediaItem(MediaItem.fromUri(Uri.parse("asset:///big_bunny_30.mp4")))
             }
 
         }
@@ -63,32 +57,18 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
                 player.setVideoSurface(info.surface)
                 println("PREPARING")
                 player.prepare()
-                player.addListener(object : Player.EventListener {
-                    override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-                        println("State: $playbackState")
-                        println("Duration:" + player.duration)
 
-                        when (playbackState) {
+                player.addVideoListener(object : VideoListener {
+                    override fun onVideoSizeChanged(width: Int, height: Int, unappliedRotationDegrees: Int,
+                        pixelWidthHeightRatio: Float
+                    ) {
+//                        super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
+//                        println("CREATE SURFACE FOR VIDEO: ${width},${height}")
+                        nativeImage = SurfaceNativeImage(width, height, info)
+                        nativeImage.surfaceTexture.setOnFrameAvailableListener { frameAvailable++ }
 
-                            Player.STATE_BUFFERING -> {
-                            }
-                            Player.STATE_ENDED -> {
-                                onComplete(Unit)
-                            }
-                            Player.STATE_IDLE -> {
-                            }
-                            Player.STATE_READY -> {
-                            }
-                            else -> {
-                            }
-                        }
                     }
-
                 })
-
-                println("CREATE SURFACE FOR VIDEO: ${player.videoFormat?.width},${player.videoFormat?.height}")
-                nativeImage = SurfaceNativeImage(640,368, info)
-                nativeImage.surfaceTexture.setOnFrameAvailableListener { frameAvailable++ }
             }
         }
     }
@@ -103,8 +83,7 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
             surfaceTexture.updateTexImage()
             lastTimeSpan = surfaceTexture.timestamp.toDouble().nanoseconds.hr
             onVideoFrame(Frame(nativeImage, lastTimeSpan, frameRate.timeSpan.hr))
-        }
-        catch(e: Exception) {
+        } catch (e: Exception) {
             System.err.println(e.message)
         }
     }
@@ -118,7 +97,8 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
     override suspend fun getTotalFrames(): Long? =
         getDuration()?.let { duration -> (duration / frameRate.timeSpan.hr).toLong() }
 
-    override suspend fun getDuration(): HRTimeSpan? = player?.duration.takeIf { it != null && it >= 0 }?.milliseconds?.hr
+    override suspend fun getDuration(): HRTimeSpan? =
+        player?.duration.takeIf { it != null && it >= 0 }?.milliseconds?.hr
 
     override suspend fun play() {
         //println("START")
@@ -147,7 +127,8 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
     override suspend fun seek(time: HRTimeSpan) {
         lastTimeSpan = time
         CoroutineScope(Dispatchers.Main).launch {
-            println("seekExoPlayer:${time.millisecondsInt.toLong()}")
+            //Todo seek through multiple media files
+//            player?.seekTo(windowIndex, seekPos.toLong())
             player?.seekTo(time.millisecondsInt.toLong())
         }
     }
