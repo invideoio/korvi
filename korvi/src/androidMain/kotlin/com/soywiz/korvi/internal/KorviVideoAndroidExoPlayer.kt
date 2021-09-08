@@ -1,7 +1,7 @@
 package com.soywiz.korvi.internal
 
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.video.VideoListener
+import com.google.android.exoplayer2.video.VideoSize
 import com.soywiz.klock.Frequency
 import com.soywiz.klock.hr.HRTimeSpan
 import com.soywiz.klock.hr.hr
@@ -47,26 +47,30 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
     private var frameAvailable = 0
 
     override fun prepare() {
+//        println("CREATING SURFACE")
+        val info = SurfaceNativeImage.createSurfacePair()
+//        println("SET SURFACE")
+        info.texture.setOnFrameAvailableListener {
+//            println("frame available: $frameAvailable")
+            frameAvailable++
+        }
+
         CoroutineScope(Dispatchers.Main).launch {
             //val offsurface = OffscreenSurface(1024, 1024)
             //offsurface.makeCurrentTemporarily {
-            println("CREATING SURFACE")
-            val info = SurfaceNativeImage.createSurfacePair()
-            println("SET SURFACE")
             player?.let { player ->
                 player.setVideoSurface(info.surface)
-                println("PREPARING")
+//                println("PREPARING")
                 player.prepare()
 
-                player.addVideoListener(object : VideoListener {
-                    override fun onVideoSizeChanged(width: Int, height: Int, unappliedRotationDegrees: Int,
-                        pixelWidthHeightRatio: Float
-                    ) {
-//                        super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
-//                        println("CREATE SURFACE FOR VIDEO: ${width},${height}")
-                        nativeImage = SurfaceNativeImage(width, height, info)
-                        nativeImage.surfaceTexture.setOnFrameAvailableListener { frameAvailable++ }
-
+                player.addListener(object : Player.Listener {
+                    override fun onVideoSizeChanged(videoSize: VideoSize) {
+                        super.onVideoSizeChanged(videoSize)
+                        println("CREATE SURFACE FOR VIDEO: ${videoSize.width},${videoSize.height}")
+                        nativeImage = SurfaceNativeImage(videoSize.width, videoSize.height, info)
+                        CoroutineScope(Dispatchers.Main).launch {
+//                            play()
+                        }
                     }
                 })
             }
@@ -77,9 +81,9 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
     override fun render() {
         if (lastUpdatedFrame == frameAvailable) return
         try {
-//            println("AndroidKorviVideoAndroidMediaPlayer.render! $frameAvailable")
-            lastUpdatedFrame = frameAvailable
+            println("AndroidKorviVideoAndroidExoPlayer.render! $frameAvailable")
             val surfaceTexture = nativeImage.surfaceTexture
+            lastUpdatedFrame = frameAvailable
             surfaceTexture.updateTexImage()
             lastTimeSpan = surfaceTexture.timestamp.toDouble().nanoseconds.hr
             onVideoFrame(Frame(nativeImage, lastTimeSpan, frameRate.timeSpan.hr))
