@@ -8,6 +8,9 @@ import com.soywiz.korio.file.std.AndroidResourcesVfs
 suspend fun generateExoPlayerSource(source: VfsFile): Uri {
     val finalVfsFile = source.getUnderlyingUnscapedFile()
     val vfs = finalVfsFile.vfs
+    if (source.absolutePath.startsWith("file://") || source.absolutePath.startsWith("content://")) {
+        return Uri.parse(source.absolutePath)
+    }
     return when (vfs) {
         is AndroidResourcesVfs -> {
 
