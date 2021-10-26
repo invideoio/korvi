@@ -57,6 +57,9 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
             //offsurface.makeCurrentTemporarily {
             player?.let { player ->
                 player.setVideoSurface(info.surface)
+                val param = PlaybackParameters(1f)
+                player.playbackParameters = param
+
                 player.prepare()
 
                 player.addListener(object : Player.Listener {
