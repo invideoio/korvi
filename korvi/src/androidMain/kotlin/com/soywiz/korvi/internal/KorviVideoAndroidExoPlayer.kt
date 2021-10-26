@@ -9,6 +9,7 @@ import com.soywiz.klock.milliseconds
 import com.soywiz.klock.nanoseconds
 import com.soywiz.klock.timesPerSecond
 import com.soywiz.korio.android.androidContext
+import com.soywiz.korio.android.withAndroidContext
 import com.soywiz.korio.file.VfsFile
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
@@ -30,15 +31,15 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
         val androidContext = androidContext()
 
         CoroutineScope(Dispatchers.Main).launch {
-            player = SimpleExoPlayer.Builder(androidContext)
-                .build()
-            player?.apply {
-                //Todo add multiple data sources when received as list
-                addMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
+            withAndroidContext(androidContext) {
+                player = SimpleExoPlayer.Builder(androidContext)
+                    .build()
+                player?.apply {
+                    //Todo add multiple data sources when received as list
+                    addMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
+                }
             }
-
         }
-
     }
 
     @Volatile
