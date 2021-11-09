@@ -1,5 +1,6 @@
 package com.soywiz.korvi.internal
 
+import android.net.Uri
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.video.VideoSize
 import com.soywiz.klock.Frequency
@@ -11,15 +12,16 @@ import com.soywiz.klock.timesPerSecond
 import com.soywiz.korio.android.androidContext
 import com.soywiz.korio.android.withAndroidContext
 import com.soywiz.korio.file.VfsFile
+import com.soywiz.korio.file.baseName
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
 
 
-class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) : KorviVideo() {
+class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
 
     companion object {
-        suspend operator fun invoke(file: VfsFile) =
-            AndroidKorviVideoAndroidExoPlayer(file).also { it.init() }
+        suspend operator fun invoke() =
+            AndroidKorviVideoAndroidExoPlayer().also { it.init() }
     }
 
     private var player: SimpleExoPlayer? = null
@@ -32,13 +34,14 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
 
         CoroutineScope(Dispatchers.Main).launch {
             withAndroidContext(androidContext) {
-                player = SimpleExoPlayer.Builder(androidContext)
-                    .build()
-                player?.apply {
-                    //Todo add multiple data sources when received as list
-                    addMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
-                }
+                player = SimpleExoPlayer.Builder(androidContext).build()
             }
+        }
+    }
+
+    fun setMedia(file: VfsFile) {
+        CoroutineScope(Dispatchers.Main).launch {
+            player?.setMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
         }
     }
 
@@ -62,7 +65,6 @@ class AndroidKorviVideoAndroidExoPlayer private constructor(val file: VfsFile) :
                 player.playbackParameters = param
 
                 player.prepare()
-
                 player.addListener(object : Player.Listener {
                     override fun onVideoSizeChanged(videoSize: VideoSize) {
                         super.onVideoSizeChanged(videoSize)
