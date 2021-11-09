@@ -10,8 +10,8 @@ internal class AndroidKorviInternal : KorviInternal() {
         //val final = file.getUnderlyingUnscapedFile()
         //val vfs = final.vfs
         //return AndroidKorviVideoSoft(file, androidContext(), coroutineContext)
-//        return AndroidKorviVideoAndroidMediaPlayer(file)
-        return AndroidKorviVideoAndroidExoPlayer(file)
+        return AndroidKorviVideoAndroidMediaPlayer(file)
+//        return AndroidKorviVideoAndroidExoPlayer(file)
         //return KorviVideoAndroidSurfaceView(file, androidContext(), coroutineContext)
     }
 }
