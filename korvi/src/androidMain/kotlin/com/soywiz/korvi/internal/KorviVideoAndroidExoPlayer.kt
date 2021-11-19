@@ -1,6 +1,5 @@
 package com.soywiz.korvi.internal
 
-import android.net.Uri
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.video.VideoSize
 import com.soywiz.klock.Frequency
@@ -10,9 +9,7 @@ import com.soywiz.klock.milliseconds
 import com.soywiz.klock.nanoseconds
 import com.soywiz.klock.timesPerSecond
 import com.soywiz.korio.android.androidContext
-import com.soywiz.korio.android.withAndroidContext
 import com.soywiz.korio.file.VfsFile
-import com.soywiz.korio.file.baseName
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
 
@@ -32,10 +29,8 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
 
         val androidContext = androidContext()
 
-        CoroutineScope(Dispatchers.Main).launch {
-            withAndroidContext(androidContext) {
-                player = SimpleExoPlayer.Builder(androidContext).build()
-            }
+        withContext(Dispatchers.Main) {
+            player = SimpleExoPlayer.Builder(androidContext).build()
         }
     }
 
@@ -105,7 +100,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
 
     override suspend fun play() {
         //println("START")
-        CoroutineScope(Dispatchers.Main).launch {
+        withContext(Dispatchers.Main) {
             player?.play()
             println("Duration:" + getDuration()?.secondsInt)
 
@@ -114,7 +109,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
 
     override suspend fun pause() {
         super.pause()
-        CoroutineScope(Dispatchers.Main).launch {
+        withContext(Dispatchers.Main) {
             player?.pause()
             println("Duration:" + getDuration()?.secondsInt)
 
@@ -129,7 +124,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
 
     override suspend fun seek(time: HRTimeSpan) {
         lastTimeSpan = time
-        CoroutineScope(Dispatchers.Main).launch {
+        withContext(Dispatchers.Main) {
             //Todo seek through multiple media files
 //            player?.seekTo(windowIndex, seekPos.toLong())
             player?.seekTo(time.millisecondsInt.toLong())
