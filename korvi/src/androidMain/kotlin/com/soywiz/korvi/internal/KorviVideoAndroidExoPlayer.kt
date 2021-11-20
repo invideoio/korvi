@@ -34,10 +34,10 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
         }
     }
 
-    fun setMedia(file: VfsFile) {
+    fun setMedia(mediaItem: MediaItem) {
         CoroutineScope(Dispatchers.Main).launch {
             player?.clearVideoSurface()
-            player?.setMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
+            player?.setMediaItem(mediaItem)
         }
     }
 
