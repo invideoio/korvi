@@ -36,6 +36,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
 
     fun setMedia(file: VfsFile) {
         CoroutineScope(Dispatchers.Main).launch {
+            player?.clearVideoSurface()
             player?.setMediaItem(MediaItem.fromUri(generateExoPlayerSource(file)))
         }
     }
