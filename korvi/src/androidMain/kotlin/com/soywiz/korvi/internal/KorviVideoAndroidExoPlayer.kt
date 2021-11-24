@@ -10,6 +10,7 @@ import com.soywiz.klock.nanoseconds
 import com.soywiz.klock.timesPerSecond
 import com.soywiz.korio.android.androidContext
 import com.soywiz.korio.file.VfsFile
+import com.soywiz.korma.geom.*
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
 
@@ -25,6 +26,8 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
     lateinit var nativeImage: SurfaceNativeImage
 
     private var lastTimeSpan: HRTimeSpan = HRTimeSpan.ZERO
+    private var transformMat = FloatArray(16) { 0.0f }
+
     private suspend fun init() {
 
         val androidContext = androidContext()
@@ -73,6 +76,8 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
     }
 
     private var lastUpdatedFrame = -1
+    private val matrix = Matrix3D()
+
     override fun render() {
         if (lastUpdatedFrame == frameAvailable) return
         try {
@@ -80,6 +85,15 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
             val surfaceTexture = nativeImage.surfaceTexture
             lastUpdatedFrame = frameAvailable
             surfaceTexture.updateTexImage()
+            surfaceTexture.getTransformMatrix(transformMat)
+
+            matrix.setColumns4x4(transformMat, 0)
+            matrix.translate(0.0, +0.5, 0.0)
+            matrix.scale(1.0, -1.0, 1.0)
+            matrix.translate(0.0, -0.5, 0.0)
+            matrix.copyToFloat4x4(transformMat, MajorOrder.COLUMN)
+
+            nativeImage.transformMat.setColumns4x4(transformMat, 0)
             lastTimeSpan = surfaceTexture.timestamp.toDouble().nanoseconds.hr
             onVideoFrame(Frame(nativeImage, lastTimeSpan, frameRate.timeSpan.hr))
         } catch (e: Exception) {
