@@ -1,5 +1,6 @@
 package com.soywiz.korvi.internal
 
+import android.content.Context
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.video.VideoSize
 import com.soywiz.klock.Frequency
@@ -9,40 +10,36 @@ import com.soywiz.klock.milliseconds
 import com.soywiz.klock.nanoseconds
 import com.soywiz.klock.timesPerSecond
 import com.soywiz.korio.android.androidContext
-import com.soywiz.korio.file.VfsFile
 import com.soywiz.korma.geom.*
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
 
 
-class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
+class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
 
-    companion object {
-        suspend operator fun invoke() =
-            AndroidKorviVideoAndroidExoPlayer().also { it.init() }
-    }
-
-    private var player: SimpleExoPlayer? = null
+    private val player = SimpleExoPlayer.Builder(context).build()
     lateinit var nativeImage: SurfaceNativeImage
 
     private var lastTimeSpan: HRTimeSpan = HRTimeSpan.ZERO
     private var transformMat = FloatArray(16) { 0.0f }
 
-    private suspend fun init() {
+    private val mainScope = CoroutineScope(Dispatchers.Main + Job())
 
-        val androidContext = androidContext()
+    fun setVolume(volume: Float) {
+        player.volume = volume
+    }
 
-        withContext(Dispatchers.Main) {
-            player = SimpleExoPlayer.Builder(androidContext).build()
-        }
+    fun setSpeed(volume: Float) {
+        val param = PlaybackParameters(volume)
+        player.playbackParameters = param
     }
 
     fun setMedia(mediaItem: MediaItem) {
-        CoroutineScope(Dispatchers.Main).launch {
-            player?.clearVideoSurface()
-            player?.setMediaItem(mediaItem)
-        }
+        player.clearVideoSurface()
+        player.setMediaItem(mediaItem)
     }
+
+    fun getCurrentMediaCount() = player.mediaItemCount
 
     @Volatile
     private var frameAvailable = 0
@@ -55,23 +52,22 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
             frameAvailable++
         }
 
-        CoroutineScope(Dispatchers.Main).launch {
+        mainScope.launch {
             //val offsurface = OffscreenSurface(1024, 1024)
             //offsurface.makeCurrentTemporarily {
-            player?.let { player ->
-                player.setVideoSurface(info.surface)
-                val param = PlaybackParameters(1f)
-                player.playbackParameters = param
+            player.setVideoSurface(info.surface)
+            val param = PlaybackParameters(1f)
+            player.playbackParameters = param
 
-                player.prepare()
-                player.addListener(object : Player.Listener {
-                    override fun onVideoSizeChanged(videoSize: VideoSize) {
-                        super.onVideoSizeChanged(videoSize)
-                        println("CREATE SURFACE FOR VIDEO: ${videoSize.width},${videoSize.height}")
-                        nativeImage = SurfaceNativeImage(videoSize.width, videoSize.height, info)
-                    }
-                })
-            }
+            player.prepare()
+            player.addListener(object : Player.Listener {
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    super.onVideoSizeChanged(videoSize)
+                    println("CREATE SURFACE FOR VIDEO: ${videoSize.width},${videoSize.height}")
+                    nativeImage = SurfaceNativeImage(videoSize.width, videoSize.height, info)
+                }
+            })
+
         }
     }
 
@@ -81,7 +77,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
     override fun render() {
         if (lastUpdatedFrame == frameAvailable) return
         try {
-            // println("AndroidKorviVideoAndroidExoPlayer.render! $frameAvailable")
+            println("AndroidKorviVideoAndroidExoPlayer.render! $frameAvailable")
             val surfaceTexture = nativeImage.surfaceTexture
             lastUpdatedFrame = frameAvailable
             surfaceTexture.updateTexImage()
@@ -101,7 +97,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
         }
     }
 
-    override val running: Boolean get() = player?.isPlaying ?: false
+    override val running: Boolean get() = player.isPlaying ?: false
     override val elapsedTimeHr: HRTimeSpan get() = lastTimeSpan
 
     // @TODO: We should try to get this
@@ -111,12 +107,12 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
         getDuration()?.let { duration -> (duration / frameRate.timeSpan.hr).toLong() }
 
     override suspend fun getDuration(): HRTimeSpan? =
-        player?.duration.takeIf { it != null && it >= 0 }?.milliseconds?.hr
+        player.duration.takeIf { it != null && it >= 0 }?.milliseconds?.hr
 
     override suspend fun play() {
         //println("START")
         withContext(Dispatchers.Main) {
-            player?.play()
+            player.play()
             println("Duration:" + getDuration()?.secondsInt)
 
         }
@@ -125,7 +121,7 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
     override suspend fun pause() {
         super.pause()
         withContext(Dispatchers.Main) {
-            player?.pause()
+            player.pause()
             println("Duration:" + getDuration()?.secondsInt)
 
         }
@@ -141,8 +137,8 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
         lastTimeSpan = time
         withContext(Dispatchers.Main) {
             //Todo seek through multiple media files
-//            player?.seekTo(windowIndex, seekPos.toLong())
-            player?.seekTo(time.millisecondsInt.toLong())
+//            player.seekTo(windowIndex, seekPos.toLong())
+            player.seekTo(time.millisecondsInt.toLong())
         }
     }
 
@@ -150,10 +146,10 @@ class AndroidKorviVideoAndroidExoPlayer : KorviVideo() {
         close()
     }
 
-    override suspend fun close() {
+    override suspend fun close() = withContext(Dispatchers.Main) {
         nativeImage.dispose()
-        player?.stop()
-        player?.release()
-        player = null
+        player.stop()
+        player.release()
+        mainScope.cancel()
     }
 }
