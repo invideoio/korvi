@@ -9,7 +9,6 @@ import com.soywiz.klock.hr.hr
 import com.soywiz.klock.milliseconds
 import com.soywiz.klock.nanoseconds
 import com.soywiz.klock.timesPerSecond
-import com.soywiz.korio.android.androidContext
 import com.soywiz.korma.geom.*
 import com.soywiz.korvi.KorviVideo
 import kotlinx.coroutines.*
@@ -38,6 +37,8 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
         player.clearVideoSurface()
         player.setMediaItem(mediaItem)
     }
+
+    fun clearVideoSurface() = player.clearVideoSurface()
 
     fun getCurrentMediaCount() = player.mediaItemCount
 
@@ -77,7 +78,7 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
     override fun render() {
         if (lastUpdatedFrame == frameAvailable) return
         try {
-            println("AndroidKorviVideoAndroidExoPlayer.render! $frameAvailable")
+//            println("AndroidKorviVideoAndroidExoPlayer.render! $frameAvailable")
             val surfaceTexture = nativeImage.surfaceTexture
             lastUpdatedFrame = frameAvailable
             surfaceTexture.updateTexImage()
