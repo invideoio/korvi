@@ -24,6 +24,9 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
 
     private val mainScope = CoroutineScope(Dispatchers.Main + Job())
 
+    private var currentSeek = -1L
+    private var pendingSeek = -1L
+
     fun setVolume(volume: Float) {
         player.volume = volume
     }
@@ -62,6 +65,23 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
 
             player.prepare()
             player.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    super.onPlaybackStateChanged(state)
+                    if(state == ExoPlayer.STATE_READY) {
+                        if (pendingSeek != currentSeek && pendingSeek != -1L) {
+                            mainScope.launch {
+                                currentSeek = -1L
+                                seek(
+                                    HRTimeSpan.fromMilliseconds(pendingSeek.toDouble())
+                                )
+                            }
+                        }
+                        else {
+                            currentSeek = -1L
+                        }
+                    }
+                }
+
                 override fun onVideoSizeChanged(videoSize: VideoSize) {
                     super.onVideoSizeChanged(videoSize)
                     println("CREATE SURFACE FOR VIDEO: ${videoSize.width},${videoSize.height}")
@@ -139,7 +159,13 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
         withContext(Dispatchers.Main) {
             //Todo seek through multiple media files
 //            player.seekTo(windowIndex, seekPos.toLong())
-            player.seekTo(time.millisecondsInt.toLong())
+            if (currentSeek == -1L) {
+                currentSeek = time.millisecondsInt.toLong()
+                pendingSeek = -1L
+                player.seekTo(currentSeek)
+            } else {
+                pendingSeek = time.millisecondsInt.toLong()
+            }
         }
     }
 
