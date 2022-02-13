@@ -27,6 +27,11 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
     private var currentSeek = -1L
     private var pendingSeek = -1L
 
+    private var isPrepared = false
+    private var hasSurface = false
+    private lateinit var info: SurfaceTextureInfo
+
+
     fun setVolume(volume: Float) {
         player.volume = volume
     }
@@ -37,6 +42,7 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
     }
 
     fun setMedia(mediaItem: MediaItem) {
+        isPrepared = false
         player.clearVideoSurface()
         player.setMediaItem(mediaItem)
     }
@@ -49,10 +55,16 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
     private var frameAvailable = 0
 
     override fun prepare() {
-        val info = SurfaceNativeImage.createSurfacePair()
+        if (isPrepared) return
+        isPrepared = true
+
+        if (!hasSurface) {
+            info = SurfaceNativeImage.createSurfacePair()
+            hasSurface = true
+        }
         // println("SET SURFACE")
         info.texture.setOnFrameAvailableListener {
-            // println("frame available: $frameAvailable")
+//             println("frame available: $frameAvailable for duration ${player.duration}")
             frameAvailable++
         }
 
