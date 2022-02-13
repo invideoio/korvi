@@ -43,7 +43,7 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
 
     fun setMedia(mediaItem: MediaItem) {
         isPrepared = false
-        player.clearVideoSurface()
+//        player.clearVideoSurface()
         player.setMediaItem(mediaItem)
     }
 
@@ -108,22 +108,22 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
     private val matrix = Matrix3D()
 
     override fun render() {
-        if (lastUpdatedFrame == frameAvailable) return
         try {
-//            println("AndroidKorviVideoAndroidExoPlayer.render! $frameAvailable")
-            val surfaceTexture = nativeImage.surfaceTexture
-            lastUpdatedFrame = frameAvailable
-            surfaceTexture.updateTexImage()
-            surfaceTexture.getTransformMatrix(transformMat)
+            if (lastUpdatedFrame != frameAvailable) {
+                val surfaceTexture = nativeImage.surfaceTexture
+                lastUpdatedFrame = frameAvailable
+                surfaceTexture.updateTexImage()
+                surfaceTexture.getTransformMatrix(transformMat)
 
-            matrix.setColumns4x4(transformMat, 0)
-            matrix.translate(0.0, +0.5, 0.0)
-            matrix.scale(1.0, -1.0, 1.0)
-            matrix.translate(0.0, -0.5, 0.0)
-            matrix.copyToFloat4x4(transformMat, MajorOrder.COLUMN)
+                matrix.setColumns4x4(transformMat, 0)
+                matrix.translate(0.0, +0.5, 0.0)
+                matrix.scale(1.0, -1.0, 1.0)
+                matrix.translate(0.0, -0.5, 0.0)
+                matrix.copyToFloat4x4(transformMat, MajorOrder.COLUMN)
 
-            nativeImage.transformMat.setColumns4x4(transformMat, 0)
-            lastTimeSpan = surfaceTexture.timestamp.toDouble().nanoseconds.hr
+                nativeImage.transformMat.setColumns4x4(transformMat, 0)
+                lastTimeSpan = surfaceTexture.timestamp.toDouble().nanoseconds.hr
+            }
             onVideoFrame(Frame(nativeImage, lastTimeSpan, frameRate.timeSpan.hr))
         } catch (e: Exception) {
             System.err.println(e.message)
@@ -167,16 +167,15 @@ class AndroidKorviVideoAndroidExoPlayer(context: Context) : KorviVideo() {
     }
 
     override suspend fun seek(time: HRTimeSpan) {
-        lastTimeSpan = time
+        val time = time.millisecondsInt.coerceAtLeast(0).toLong()
+        lastTimeSpan = HRTimeSpan.fromMilliseconds(time.toInt())
         withContext(Dispatchers.Main) {
-            //Todo seek through multiple media files
-//            player.seekTo(windowIndex, seekPos.toLong())
             if (currentSeek == -1L) {
-                currentSeek = time.millisecondsInt.toLong()
+                currentSeek = time
                 pendingSeek = -1L
                 player.seekTo(currentSeek)
             } else {
-                pendingSeek = time.millisecondsInt.toLong()
+                pendingSeek = time
             }
         }
     }
